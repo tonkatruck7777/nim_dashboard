@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>NIM YouTube Delta Dashboard</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #111;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .card {
+            border: 1px solid #333;
+            padding: 10px;
+            border-radius: 8px;
+            background: #1b1b1b;
+        }
+        .label {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .delta {
+            color: #7CFC00; /* light green */
+            font-weight: 500;
+        }
+        .meta {
+            font-size: 0.8rem;
+            color: #bbb;
+        }
+    </style>
+</head>
+<body>
+    <h1>NIM YouTube Dashboard</h1>
+    <div class="subtitle">
+        Showing top videos by current views (for now). Once history is stored, this will show true deltas.
+    </div>
+
+    {% if not top_list %}
+        <p>No snapshot data found yet. Run the CLI once to capture stats (nim_cli.py), then refresh this page.</p>
+    {% else %}
+        <div class="grid">
+            {% for item in top_list %}
+                <div class="card">
+                    <!-- Thumbnail with link to YouTube -->
+                    <a href="https://www.youtube.com/watch?v={{ item.video_id }}"
+                       target="_blank" rel="noopener noreferrer">
+                        <img
+                            src="https://img.youtube.com/vi/{{ item.video_id }}/hqdefault.jpg"
+                            alt="{{ item.label }}"
+                            style="width: 100%; border-radius: 6px; margin-bottom: 8px;"
+                        >
+                    </a>
+
+                    <!-- Label / title -->
+                    <div class="label">
+                        <a href="https://www.youtube.com/watch?v={{ item.video_id }}"
+                           target="_blank" rel="noopener noreferrer"
+                           style="color: inherit; text-decoration: none;">
+                            {{ item.label }}
+                        </a>
+                    </div>
+
+                    <!-- Numbers -->
+                    <div>Views: <span class="delta">{{ item.current_value }}</span></div>
+                    <div class="meta">
+                        Channel: {{ item.channel_name }}<br>
+                        Video ID: {{ item.video_id }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</body>
+</html>
