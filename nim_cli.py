@@ -1,5 +1,7 @@
-import os
+# nim_cli.py
+
 import json
+import os
 from datetime import datetime, timedelta
 
 from nim_core import (
@@ -15,7 +17,9 @@ from nim_core import (
 LAST_RUN_FILE = "last_option5_run.json"
 
 
-# ---------- OPTION 5 LAST-RUN TRACKING ----------
+# -------------------------------------------------------------------
+# Option 5 run tracking (24h guard)
+# -------------------------------------------------------------------
 
 def get_last_option5_run():
     if not os.path.exists(LAST_RUN_FILE):
@@ -23,10 +27,7 @@ def get_last_option5_run():
     try:
         with open(LAST_RUN_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        ts = data.get("last_run")
-        if not ts:
-            return None
-        return datetime.fromisoformat(ts)
+        return datetime.fromisoformat(data.get("last_run"))
     except Exception:
         return None
 
@@ -37,20 +38,18 @@ def set_last_option5_run():
         json.dump({"last_run": now}, f, indent=2)
 
 
-# ---------- MANUAL INPUT SNAPSHOT (OPTION 1) ----------
+# -------------------------------------------------------------------
+# Manual input (option 1)
+# -------------------------------------------------------------------
 
 def fetch_current_data_for_all_videos():
     """
-    Loop through TRACKED_VIDEOS and ask for current stats
-    for each one. Returns a snapshot dict:
-    {
-        "timestamp": "...",
-        "videos": { video_key: {metrics...}, ... }
-    }
+    Manual stats entry for each TRACKED_VIDEOS item.
+    Returns snapshot dict.
     """
     snapshot = {
         "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "videos": {}
+        "videos": {},
     }
 
     print("Enter current YouTube stats for tracked videos:")
@@ -81,16 +80,18 @@ def fetch_current_data_for_all_videos():
     return snapshot
 
 
-# ---------- GRID DISPLAY ----------
+# -------------------------------------------------------------------
+# CLI grid display
+# -------------------------------------------------------------------
 
-def display_top_movers_grid(top_list, metric_name="views_delta"):
+def display_top_movers_grid(top_list, metric_name="Δ"):
     """
     Displays up to 16 videos in a 4x4 grid based on delta ranking.
     Each cell shows:
-    - label
-    - delta (+formatted, optionally as %)
+      - label
+      - delta (formatted)
     """
-    print("\n" * 50)
+    print("\n" * 3)
     print("===========================================")
     print("        TOP YOUTUBE DELTA MOVERS (16)      ")
     print("===========================================\n")
@@ -106,92 +107,106 @@ def display_top_movers_grid(top_list, metric_name="views_delta"):
 
         # First line: labels
         for item in row:
-            label = item["label"][:20]  # truncate long labels
+            label = item["label"][:20]
             print(f"{label:<22}", end=" | ")
         print("")
 
         # Second line: deltas
         for item in row:
             delta = item["delta"]
-
-            if isinstance(delta, (int, float)) and metric_name.endswith("_pct"):
-                # percentage delta
-                delta_str = f"{delta:+.1f}%"
-            elif isinstance(delta, (int, float)):
-                # raw count delta
-                delta_str = f"{delta:+}"
+            if isinstance(delta, float):
+                # Format percentage-ish deltas nicely
+                delta_str = f"{delta:.2f}"
             else:
                 delta_str = str(delta)
-
-            print(f"Δ {delta_str:<18}", end=" | ")
-        print("\n")  # blank line between rows
+            print(f"{metric_name} {delta_str:<15}", end=" | ")
+        print("\n")
 
     input("\nPress ENTER to return to menu...")
 
 
-# ---------- MAIN MENU ----------
+# -------------------------------------------------------------------
+# Main menu
+# -------------------------------------------------------------------
 
 def main_menu():
     running = True
 
     while running:
         print("\n===== YOUTUBE DASHBOARD =====")
-        print("1. Capture ALL tracked videos + show top movers (manual input)")
+        print("1. Capture ALL tracked videos (manual) + show top movers")
         print("2. View last snapshot only")
         print("3. Exit")
         print("4. Fetch ALL tracked videos from YouTube API + show top movers")
         print("5. Build snapshot from channels + keywords config + show top movers")
         choice = input("Select an option: ").strip()
 
+        # --------------------------------------------------------------
+        # Option 1: manual entry for TRACKED_VIDEOS
+        # --------------------------------------------------------------
         if choice == "1":
             previous_snapshot = load_previous_data()
             current_snapshot = fetch_current_data_for_all_videos()
             deltas_all = compute_deltas_all(previous_snapshot, current_snapshot)
+
             top_list = get_top_videos_by_delta(
                 current_snapshot, deltas_all, "views_delta", 16
             )
-            display_top_movers_grid(top_list, metric_name="views_delta")
+            display_top_movers_grid(top_list, metric_name="Δ")
+
             save_current_data(current_snapshot)
 
+        # --------------------------------------------------------------
+        # Option 2: view last snapshot only
+        # --------------------------------------------------------------
         elif choice == "2":
             snapshot = load_previous_data()
-            if snapshot is None:
+            if snapshot is None or not snapshot.get("videos"):
                 print("No saved data found.")
                 input("Press ENTER to return to menu...")
             else:
-                # Fake deltas as N/A when just viewing last snapshot
+                # Fake deltas = current views so we can reuse the ranking helper
                 fake_deltas = {"videos": {}}
-                for key in snapshot.get("videos", {}):
+                for key, metrics in snapshot["videos"].items():
                     fake_deltas["videos"][key] = {
-                        "views_delta": "N/A",
+                        "views_delta": metrics.get("views", 0),
+                        "likes_delta": 0,
+                        "comments_delta": 0,
+                        "subscribers_delta": 0,
                         "views_delta_pct": "N/A",
-                        "likes_delta": "N/A",
-                        "comments_delta": "N/A",
-                        "subscribers_delta": "N/A",
                     }
 
                 top_list = get_top_videos_by_delta(
                     snapshot, fake_deltas, "views_delta", 16
                 )
-                display_top_movers_grid(top_list, metric_name="views_delta")
+                display_top_movers_grid(top_list, metric_name="Views")
 
+        # --------------------------------------------------------------
+        # Option 3: exit
+        # --------------------------------------------------------------
         elif choice == "3":
             running = False
 
+        # --------------------------------------------------------------
+        # Option 4: LIVE stats for TRACKED_VIDEOS via API
+        # --------------------------------------------------------------
         elif choice == "4":
-            # Live pull from YouTube API for TRACKED_VIDEOS only
-            print("Fetching stats from YouTube API...")
+            print("Fetching stats from YouTube API for TRACKED_VIDEOS...")
             previous_snapshot = load_previous_data()
             current_snapshot = fetch_current_snapshot_from_youtube()
             deltas_all = compute_deltas_all(previous_snapshot, current_snapshot)
+
             top_list = get_top_videos_by_delta(
                 current_snapshot, deltas_all, "views_delta", 16
             )
-            display_top_movers_grid(top_list, metric_name="views_delta")
+            display_top_movers_grid(top_list, metric_name="Δ")
+
             save_current_data(current_snapshot)
 
+        # --------------------------------------------------------------
+        # Option 5: channels + keywords (subject to 24h guard)
+        # --------------------------------------------------------------
         elif choice == "5":
-            # Guard: only allow every 24 hours
             last_run = get_last_option5_run()
             if last_run is not None:
                 elapsed = datetime.now() - last_run
@@ -207,7 +222,6 @@ def main_menu():
                 max_per_keyword=3,
             )
 
-            # Do not overwrite disk if this run is effectively empty
             if not current_snapshot.get("videos"):
                 print("\n[INFO] No videos were fetched this run (likely quota or config issue).")
                 print("       Keeping previous snapshot on disk, not overwriting.")
@@ -217,7 +231,7 @@ def main_menu():
             previous_snapshot = load_previous_data()
             deltas_all = compute_deltas_all(previous_snapshot, current_snapshot)
 
-            # For the aggregated dashboard, rank by percentage growth
+            # Rank by percentage view delta for this mode
             top_list = get_top_videos_by_delta(
                 current_snapshot,
                 deltas_all,
@@ -225,7 +239,7 @@ def main_menu():
                 16,
             )
 
-            display_top_movers_grid(top_list, metric_name="views_delta_pct")
+            display_top_movers_grid(top_list, metric_name="Δ%")
             save_current_data(current_snapshot)
             set_last_option5_run()
 

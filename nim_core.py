@@ -1,16 +1,119 @@
+# nim_core.py
+
 import json
 import os
 from datetime import datetime
+
 import requests
-from config import YOUTUBE_API_KEY
 from requests.exceptions import HTTPError
 
+from config import YOUTUBE_API_KEY
+
+# -------------------------------------------------------------------
+# Paths for config and snapshot
+# -------------------------------------------------------------------
+
+DATA_FILE_PATH = "youtube_metrics.json"
 CHANNELS_CONFIG_PATH = "channels.json"
 KEYWORDS_CONFIG_PATH = "keywords.json"
-DATA_FILE_PATH = "youtube_metrics.json"
 
 
-# ---------- CONFIG LOADERS ----------
+# -------------------------------------------------------------------
+# Static tracked videos (for options 1 & 4)
+# -------------------------------------------------------------------
+
+TRACKED_VIDEOS = {
+    "hasan_x8d6K399WW4": {
+        "channel_name": "HasanAbi",
+        "video_id": "x8d6K399WW4",
+        "label": "HasanAbi – we are Charlie Kirk",
+    },
+    "boyboy_Sfrjpy5cJCs": {
+        "channel_name": "Boy Boy",
+        "video_id": "Sfrjpy5cJCs",
+        "label": "BoyBoy – I snuck into a major arms dealer conference",
+    },
+    "NavaraMedia_UC2VT3RkiYo": {
+        "channel_name": "Navara Media",
+        "video_id": "UC2VT3RkiYo",
+        "label": "NavaraMedia – The blueprint for an actual revolution",
+    },
+    "Zeteo_MEtvCw1LzRc": {
+        "channel_name": "Zeteo",
+        "video_id": "MEtvCw1LzRc",
+        "label": "Zeteo – Will Mamdami Challenge the Democratic Leadership",
+    },
+    "SecularTalk_0YrNUANVel8": {
+        "channel_name": "Secular Talk",
+        "video_id": "0YrNUANVel8",
+        "label": "Secular Talk – The Rogansphere is fucked",
+    },
+    "PuntersPolitics_3oLIodU0BCU": {
+        "channel_name": "Punters Politics",
+        "video_id": "3oLIodU0BCU",
+        "label": "Punters Politics – Australia gets played by Santos",
+    },
+    "TimDillon_khKJS50odJw": {
+        "channel_name": "Tim Dillon",
+        "video_id": "khKJS50odJw",
+        "label": "Tim Dillon – Wicked Terrible Life Golden Age of Travel",
+    },
+    "LBC_DAshS2Tl4yw": {
+        "channel_name": "LBC",
+        "video_id": "DAshS2Tl4yw",
+        "label": "LBC – A plan translated from Russian",
+    },
+    "CaspianReport_cVCDjEfPzII": {
+        "channel_name": "Caspian Report",
+        "video_id": "cVCDjEfPzII",
+        "label": "Caspian Report – Vietnam is beating China at its own game",
+    },
+    "TuckerCarlson_rDOsm-CYUwQ": {
+        "channel_name": "Tucker Carlson",
+        "video_id": "rDOsm-CYUwQ",
+        "label": "Tucker Carlson – Testing Piers Morgan free speech",
+    },
+    "AlexJones_NIRVzbgYk0s": {
+        "channel_name": "Alex Jones",
+        "video_id": "NIRVzbgYk0s",
+        "label": "Alex Jones – Deep State Plotting to overthrow state",
+    },
+    "BenShapiro_R5qWmHn7SUY": {
+        "channel_name": "Ben Shapiro",
+        "video_id": "R5qWmHn7SUY",
+        "label": "Ben Shapiro – Bannon Epstein connection revealed",
+    },
+    "MattWalsh_YMsJGnn-h_4": {
+        "channel_name": "Matt Walsh",
+        "video_id": "YMsJGnn-h_4",
+        "label": "Matt Walsh – Ken Burns lies revealed",
+    },
+    "TimPool_Gku5vUy0K88": {
+        "channel_name": "Tim Pool",
+        "video_id": "Gku5vUy0K88",
+        "label": "Tim Pool – MAGA Civil War",
+    },
+    "BennyJohnson_Uu7PamYxEHA": {
+        "channel_name": "Benny Johnson",
+        "video_id": "Uu7PamYxEHA",
+        "label": "Benny Johnson – Trump advisor bombshell Somali fraud scandal in Minnesota",
+    },
+    "Flagrant_buIc5vRqWOQ": {
+        "channel_name": "Flagrant",
+        "video_id": "buIc5vRqWOQ",
+        "label": "Flagrant – America vs Arabic culture",
+    },
+    "TheoVon_SDq7akQIPMw": {
+        "channel_name": "Theo Von",
+        "video_id": "SDq7akQIPMw",
+        "label": "Theo Von – This Past Weekend 626",
+    },
+}
+
+
+# -------------------------------------------------------------------
+# Config loaders: channels.json & keywords.json
+# -------------------------------------------------------------------
 
 def load_channels_config():
     """
@@ -50,98 +153,9 @@ def load_keywords_config():
     return []
 
 
-# ---------- STATIC TRACKED VIDEOS (OPTION 1 / 4 PATH) ----------
-
-TRACKED_VIDEOS = {
-    "hasan_x8d6K399WW4": {
-        "channel_name": "HasanAbi",
-        "video_id": "x8d6K399WW4",
-        "label": "HasanAbi – we are Charlie Kirk"
-    },
-    "boyboy_Sfrjpy5cJCs": {
-        "channel_name": "Boy Boy",
-        "video_id": "Sfrjpy5cJCs",
-        "label": "BoyBoy – I snuck into a major arms dealer conference"
-    },
-    "NavaraMedia_UC2VT3RkiYo": {
-        "channel_name": "Navara Media",
-        "video_id": "UC2VT3RkiYo",
-        "label": "NavaraMedia - The blueprint for an actual revolution"
-    },
-    "Zeteo_MEtvCw1LzRc": {
-        "channel_name": "Zeteo",
-        "video_id": "MEtvCw1LzRc",
-        "label": "Zeteo - Will Mamdami Challenge the Democratic Leadership"
-    },
-    "SecularTalk_0YrNUANVel8": {
-        "channel_name": "Secular Talk",
-        "video_id": "0YrNUANVel8",
-        "label": "Secular Talk - The Rogansphere is fucked"
-    },
-    "PuntersPolitics_3oLIodU0BCU": {
-        "channel_name": "Punters Politics",
-        "video_id": "3oLIodU0BCU",
-        "label": "Punters Politics - Australia gets plaed by Santos"
-    },
-    "TimDillon_khKJS50odJw": {
-        "channel_name": "Tim Dillon",
-        "video_id": "khKJS50odJw",
-        "label": "Tim Dillon - Wicked Terrible Life Golden Age of Travel"
-    },
-    "LBC_DAshS2Tl4yw": {
-        "channel_name": "LBC",
-        "video_id": "DAshS2Tl4yw",
-        "label": "LBC - A plan translated from Russian"
-    },
-    "CaspianReport_cVCDjEfPzII": {
-        "channel_name": "Caspian Report",
-        "video_id": "cVCDjEfPzII",
-        "label": "Caspian Report - Vietnam is beating China at its own game"
-    },
-    "TuckerCarlson_rDOsm-CYUwQ": {
-        "channel_name": "Tucker Carlson",
-        "video_id": "rDOsm-CYUwQ",
-        "label": "Tucker Carlson - Testing Piers Morgan fee speech"
-    },
-    "AlexJones_NIRVzbgYk0s": {
-        "channel_name": "Alex Jones",
-        "video_id": "NIRVzbgYk0s",
-        "label": "Alex Jones - Deep State Plotting to overthrow state"
-    },
-    "BenShapiro_R5qWmHn7SUY": {
-        "channel_name": "Ben Shapiro",
-        "video_id": "R5qWmHn7SUY",
-        "label": "Ben Shapiro - Bannon Epstein connection revealed"
-    },
-    "MattWalsh_YMsJGnn-h_4": {
-        "channel_name": "Matt Walsh",
-        "video_id": "YMsJGnn-h_4",
-        "label": "Matt Walsh - Ken Burns lies revealed"
-    },
-    "TimPool_Gku5vUy0K88": {
-        "channel_name": "Tim Pool",
-        "video_id": "Gku5vUy0K88",
-        "label": "Tim Pool - MAGA Civil War"
-    },
-    "BennyJohnson_Uu7PamYxEHA": {
-        "channel_name": "Benny Johnson",
-        "video_id": "Uu7PamYxEHA",
-        "label": "Benny Johnson - Trump advisor bombshell Somali fraud scandal in Minnesota"
-    },
-    "Flagrant_buIc5vRqWOQ": {
-        "channel_name": "Flagrant",
-        "video_id": "buIc5vRqWOQ",
-        "label": "Flagrant - America vs Arabic culture"
-    },
-    "TheoVon_SDq7akQIPMw": {
-        "channel_name": "Theo Von",
-        "video_id": "SDq7akQIPMw",
-        "label": "Theo Von - Past Weekend 626"
-    },
-}
-
-
-# ---------- FILE I/O ----------
+# -------------------------------------------------------------------
+# File I/O for snapshot
+# -------------------------------------------------------------------
 
 def load_previous_data():
     """
@@ -168,170 +182,91 @@ def save_current_data(current_snapshot):
         json.dump(current_snapshot, f, indent=2)
 
 
-# ---------- DELTAS ----------
+# -------------------------------------------------------------------
+# Delta computations (raw + percentage)
+# -------------------------------------------------------------------
 
 def compute_deltas_all(previous_snapshot, current_snapshot):
     """
     Compute deltas for every video between previous and current snapshot.
-    Returns a dict:
+
+    Returns:
     {
-        "videos": {
-            video_key: {
-                "views_delta": int or "N/A",
-                "views_delta_pct": float or "N/A",
-                "likes_delta": ...,
-                "comments_delta": ...,
-                "subscribers_delta": ...
-            },
-            ...
-        }
+      "videos": {
+        video_key: {
+          "views_delta": int or "N/A",
+          "likes_delta": int or "N/A",
+          "comments_delta": int or "N/A",
+          "subscribers_delta": int or "N/A",
+          "views_delta_pct": float or "N/A",
+        },
+        ...
+      }
     }
     """
     deltas = {"videos": {}}
 
     if previous_snapshot is None or "videos" not in previous_snapshot:
         # No baseline – all deltas N/A
-        for video_key in current_snapshot["videos"]:
+        for video_key in current_snapshot.get("videos", {}):
             deltas["videos"][video_key] = {
                 "views_delta": "N/A",
-                "views_delta_pct": "N/A",
                 "likes_delta": "N/A",
                 "comments_delta": "N/A",
                 "subscribers_delta": "N/A",
+                "views_delta_pct": "N/A",
             }
         return deltas
 
-    prev_videos = previous_snapshot["videos"]
+    prev_videos = previous_snapshot.get("videos", {})
 
-    for video_key, curr_metrics in current_snapshot["videos"].items():
-        if video_key in prev_videos:
-            prev_metrics = prev_videos[video_key]
-
-            views_delta = curr_metrics["views"] - prev_metrics["views"]
-            likes_delta = curr_metrics["likes"] - prev_metrics["likes"]
-            comments_delta = curr_metrics["comments"] - prev_metrics["comments"]
-            subs_delta = curr_metrics["subscribers"] - prev_metrics["subscribers"]
-
-            prev_views = prev_metrics["views"]
-            if prev_views > 0:
-                views_delta_pct = (views_delta / prev_views) * 100.0
-            else:
-                views_delta_pct = "N/A"
-
-            deltas["videos"][video_key] = {
-                "views_delta": views_delta,
-                "views_delta_pct": views_delta_pct,
-                "likes_delta": likes_delta,
-                "comments_delta": comments_delta,
-                "subscribers_delta": subs_delta,
-            }
-        else:
-            # New video since last snapshot
+    for video_key, curr_metrics in current_snapshot.get("videos", {}).items():
+        if video_key not in prev_videos:
             deltas["videos"][video_key] = {
                 "views_delta": "N/A",
-                "views_delta_pct": "N/A",
                 "likes_delta": "N/A",
                 "comments_delta": "N/A",
                 "subscribers_delta": "N/A",
+                "views_delta_pct": "N/A",
             }
+            continue
+
+        prev_metrics = prev_videos[video_key]
+
+        def _delta(field):
+            if field not in curr_metrics or field not in prev_metrics:
+                return "N/A"
+            return curr_metrics[field] - prev_metrics[field]
+
+        views_delta = _delta("views")
+        likes_delta = _delta("likes")
+        comments_delta = _delta("comments")
+        subs_delta = _delta("subscribers")
+
+        # Percentage view delta, if possible
+        if (
+            isinstance(views_delta, int)
+            and "views" in prev_metrics
+            and prev_metrics["views"] > 0
+        ):
+            views_delta_pct = (views_delta / prev_metrics["views"]) * 100.0
+        else:
+            views_delta_pct = "N/A"
+
+        deltas["videos"][video_key] = {
+            "views_delta": views_delta,
+            "likes_delta": likes_delta,
+            "comments_delta": comments_delta,
+            "subscribers_delta": subs_delta,
+            "views_delta_pct": views_delta_pct,
+        }
 
     return deltas
 
 
-# ---------- DISCOVERY HELPERS ----------
-
-def fetch_latest_video_ids_for_channel_via_playlist(api_key, channel_id, max_results=5):
-    """
-    Get the latest video IDs from a channel using its uploads playlist
-    instead of search.list. Much cheaper in quota:
-    - channels.list: 1 unit
-    - playlistItems.list: 1 unit
-    """
-    if not api_key:
-        raise RuntimeError("No API key found in config.py")
-
-    # 1) Get the uploads playlist for this channel
-    channels_url = "https://www.googleapis.com/youtube/v3/channels"
-    chan_params = {
-        "part": "contentDetails",
-        "id": channel_id,
-        "key": api_key,
-    }
-    resp = requests.get(channels_url, params=chan_params, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-
-    items = data.get("items", [])
-    if not items:
-        print(f"[WARN] No channel found for id {channel_id}")
-        return []
-
-    uploads_playlist_id = items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
-
-    # 2) Get latest items from the uploads playlist
-    playlist_items_url = "https://www.googleapis.com/youtube/v3/playlistItems"
-    pl_params = {
-        "part": "contentDetails",
-        "playlistId": uploads_playlist_id,
-        "maxResults": max_results,
-        "key": api_key,
-    }
-    resp = requests.get(playlist_items_url, params=pl_params, timeout=10)
-    resp.raise_for_status()
-    pl_data = resp.json()
-
-    video_ids = []
-    for item in pl_data.get("items", []):
-        vid = item["contentDetails"]["videoId"]
-        video_ids.append(vid)
-
-    return video_ids
-
-
-def fetch_video_ids_for_keyword(api_key, query, max_results=5):
-    """
-    Use YouTube Search API to get video IDs matching a text query.
-    Returns a list of video IDs. On error, returns [] and logs.
-    """
-    if not api_key:
-        raise RuntimeError("No API key found in config.py")
-
-    base_url = "https://www.googleapis.com/youtube/v3/search"
-
-    params = {
-        "part": "snippet",
-        "q": query,
-        "order": "date",    # or 'relevance'
-        "type": "video",
-        "maxResults": max_results,
-        "key": api_key,
-    }
-
-    try:
-        resp = requests.get(base_url, params=params)
-        resp.raise_for_status()
-    except HTTPError as e:
-        print("\n====================== API ERROR ======================")
-        print(f"Error fetching videos for keyword '{query}': {e}")
-        try:
-            print("YouTube response snippet:")
-            print(resp.text[:500])
-        except Exception:
-            pass
-        print("Returning empty list for this keyword...")
-        print("=======================================================\n")
-        return []
-
-    data = resp.json()
-    video_ids = []
-
-    for item in data.get("items", []):
-        vid = item["id"].get("videoId")
-        if vid:
-            video_ids.append(vid)
-
-    return video_ids
-
+# -------------------------------------------------------------------
+# YouTube API helpers
+# -------------------------------------------------------------------
 
 def fetch_youtube_stats_for_videos(api_key, video_ids):
     """
@@ -364,7 +299,7 @@ def fetch_youtube_stats_for_videos(api_key, video_ids):
         }
 
         try:
-            resp = requests.get(base_url, params=params)
+            resp = requests.get(base_url, params=params, timeout=10)
             resp.raise_for_status()
         except HTTPError as e:
             print("\n====================== API ERROR ======================")
@@ -396,25 +331,101 @@ def fetch_youtube_stats_for_videos(api_key, video_ids):
     return stats_by_id
 
 
-# ---------- SNAPSHOT BUILDERS ----------
+def fetch_latest_video_ids_for_channel_via_playlist(api_key, channel_id, max_results=5):
+    """
+    Get the latest video IDs from a channel using its uploads playlist
+    instead of search.list (100x cheaper in quota).
+    """
+    if not api_key:
+        raise RuntimeError("No API key found in config.py")
+
+    # 1) Get uploads playlist id
+    channels_url = "https://www.googleapis.com/youtube/v3/channels"
+    chan_params = {
+        "part": "contentDetails",
+        "id": channel_id,
+        "key": api_key,
+    }
+    resp = requests.get(channels_url, params=chan_params, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+
+    items = data.get("items", [])
+    if not items:
+        print(f"[WARN] No channel found for id {channel_id}")
+        return []
+
+    uploads_playlist_id = items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
+
+    # 2) Get latest items from that playlist
+    playlist_items_url = "https://www.googleapis.com/youtube/v3/playlistItems"
+    pl_params = {
+        "part": "contentDetails",
+        "playlistId": uploads_playlist_id,
+        "maxResults": max_results,
+        "key": api_key,
+    }
+    resp = requests.get(playlist_items_url, params=pl_params, timeout=10)
+    resp.raise_for_status()
+    pl_data = resp.json()
+
+    video_ids = []
+    for item in pl_data.get("items", []):
+        vid = item["contentDetails"]["videoId"]
+        video_ids.append(vid)
+
+    return video_ids
+
+
+def fetch_video_ids_for_keyword(api_key, query, max_results=5):
+    """
+    Use YouTube Search API to get video IDs matching a text query.
+    Returns a list of video IDs. On error, returns [] and logs.
+    """
+    if not api_key:
+        raise RuntimeError("No API key found in config.py")
+
+    base_url = "https://www.googleapis.com/youtube/v3/search"
+
+    params = {
+        "part": "snippet",
+        "q": query,
+        "order": "date",
+        "type": "video",
+        "maxResults": max_results,
+        "key": api_key,
+    }
+
+    try:
+        resp = requests.get(base_url, params=params, timeout=10)
+        resp.raise_for_status()
+    except HTTPError as e:
+        print("\n====================== API ERROR ======================")
+        print(f"Error fetching videos for keyword '{query}': {e}")
+        try:
+            print("YouTube response snippet:")
+            print(resp.text[:500])
+        except Exception:
+            pass
+        print("Returning empty list for this keyword...")
+        print("=======================================================\n")
+        return []
+
+    data = resp.json()
+    video_ids = []
+
+    for item in data.get("items", []):
+        vid = item["id"].get("videoId")
+        if vid:
+            video_ids.append(vid)
+
+    return video_ids
+
 
 def fetch_current_snapshot_from_youtube():
     """
-    Builds a snapshot dict from TRACKED_VIDEOS only:
-    {
-        "timestamp": "...",
-        "videos": {
-            video_key: {
-                "channel_name": ...,
-                "video_id": ...,
-                "views": ...,
-                "likes": ...,
-                "comments": ...,
-                "subscribers": 0
-            },
-            ...
-        }
-    }
+    Build a snapshot using TRACKED_VIDEOS + live YouTube stats.
+    Used for CLI option 4.
     """
     if not YOUTUBE_API_KEY:
         raise RuntimeError("YOUTUBE_API_KEY is not set. Please export it before running.")
@@ -424,7 +435,7 @@ def fetch_current_snapshot_from_youtube():
 
     snapshot = {
         "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "videos": {}
+        "videos": {},
     }
 
     for video_key, meta in TRACKED_VIDEOS.items():
@@ -439,8 +450,8 @@ def fetch_current_snapshot_from_youtube():
             "views": s["views"],
             "likes": s["likes"],
             "comments": s["comments"],
-            "subscribers": 0,
-            "label": meta.get("label", vid),
+            "subscribers": 0,  # placeholder
+            "label": meta.get("label", video_key),
         }
 
     return snapshot
@@ -448,12 +459,12 @@ def fetch_current_snapshot_from_youtube():
 
 def build_snapshot_from_channels_and_keywords(
     max_per_channel=5,
-    max_per_keyword=5,
+    max_per_keyword=3,
 ):
     """
     Build a snapshot using:
-    - recent uploads from channels in channels.json
-    - recent videos matching keyword queries in keywords.json
+    - recent uploads from channels in channels.json (playlistItems-based)
+    - recent videos for keywords in keywords.json (search.list)
     """
     if not YOUTUBE_API_KEY:
         raise RuntimeError("No API key found in config.py")
@@ -462,9 +473,9 @@ def build_snapshot_from_channels_and_keywords(
     keywords_cfg = load_keywords_config()
 
     all_video_ids = set()
-    video_meta_list = []  # maps video_id -> meta (source_type, source_label, etc.)
+    video_meta_list = []  # mapping from video_id -> label/source
 
-    # ---- Channels (using uploads playlist, not search.list) ----
+    # ---- Channels (via uploads playlist) ----
     for ch in channels_cfg:
         ch_key = ch.get("key", "channel")
         ch_id = ch.get("channel_id")
@@ -493,7 +504,7 @@ def build_snapshot_from_channels_and_keywords(
                     "source_label": ch_label,
                 })
 
-    # ---- Keywords (still using search.list, but more controlled) ----
+    # ---- Keywords (search.list) ----
     for kw in keywords_cfg:
         kw_key = kw.get("key", "keyword")
         queries = kw.get("queries", [])
@@ -520,17 +531,23 @@ def build_snapshot_from_channels_and_keywords(
                         "source_label": kw_label,
                     })
 
-    # 2) Fetch stats for all unique video IDs
+    if not all_video_ids:
+        # No videos found (quota, config, etc.)
+        return {
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "videos": {},
+        }
+
+    # Fetch stats for all unique video ids
     all_video_ids_list = list(all_video_ids)
     stats_by_id = fetch_youtube_stats_for_videos(
         YOUTUBE_API_KEY,
         all_video_ids_list,
     )
 
-    # 3) Build snapshot structure
     snapshot = {
         "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "videos": {}
+        "videos": {},
     }
 
     for meta in video_meta_list:
@@ -542,9 +559,7 @@ def build_snapshot_from_channels_and_keywords(
         source_key = meta["source_key"]
         video_key = f"{meta['source_type']}_{source_key}_{vid}"
 
-        # Label = actual YouTube video title (trimmed)
-        title = stats["title"] or "(no title)"
-        label = title[:80]
+        label = f"{meta['source_label']} – {stats['title'][:50]}"
 
         snapshot["videos"][video_key] = {
             "channel_name": stats["channel_title"],
@@ -559,36 +574,42 @@ def build_snapshot_from_channels_and_keywords(
     return snapshot
 
 
-# ---------- RANKING / GRID DATA ----------
+# -------------------------------------------------------------------
+# Ranking helper (used by CLI + web)
+# -------------------------------------------------------------------
 
 def get_top_videos_by_delta(current_snapshot, deltas, metric="views_delta", top_n=16):
     """
-    Build a list of videos sorted by a given delta metric (e.g. "views_delta" or "views_delta_pct").
-    Returns a list of dicts ready for CLI grid or web UI.
+    Build list sorted by a given delta metric.
+    For web + option 5 we’ll often use "views_delta_pct".
+    For simple “sort by views”, we can fake deltas to equal views.
     """
     rows = []
 
-    for video_key, metrics in current_snapshot["videos"].items():
-        delta_entry = deltas["videos"].get(video_key, {})
+    videos = current_snapshot.get("videos", {})
+    delta_videos = deltas.get("videos", {})
+
+    for video_key, metrics in videos.items():
+        delta_entry = delta_videos.get(video_key, {})
         delta_value = delta_entry.get(metric, "N/A")
 
-        # Skip N/A if you only want ones with a real baseline
         if isinstance(delta_value, str):
+            # Skip N/A when ranking by numeric metric
             continue
 
-        # Prefer the label stored in the snapshot (for channels/keywords),
-        # fall back to TRACKED_VIDEOS, then to video_id.
-        label = metrics.get("label")
-        if not label:
-            meta = TRACKED_VIDEOS.get(video_key, {})
-            label = meta.get("label") or metrics.get("video_id") or video_key
+        # Label priority: snapshot label → TRACKED_VIDEOS label → key
+        label = (
+            metrics.get("label")
+            or TRACKED_VIDEOS.get(video_key, {}).get("label")
+            or video_key
+        )
 
         rows.append({
             "video_key": video_key,
-            "channel_name": metrics["channel_name"],
-            "video_id": metrics["video_id"],
+            "channel_name": metrics.get("channel_name", ""),
+            "video_id": metrics.get("video_id", ""),
             "label": label,
-            "current_value": metrics["views"],
+            "current_value": metrics.get("views", 0),
             "delta": delta_value,
         })
 
