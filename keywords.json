@@ -65,5 +65,13 @@
       "Mamdami",
       "us election"
     ]
+  },
+  {
+    "key": "nickfuentes",
+    "label": "Nick Fuentes",
+    "group": "right",
+    "queries": [
+      "nick fuentes"
+    ]
   }
 ]
