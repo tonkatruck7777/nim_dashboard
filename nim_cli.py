@@ -171,8 +171,8 @@ def main_menu():
             last_run = get_last_option5_run()
             if last_run is not None:
                 elapsed = datetime.now() - last_run
-                if elapsed < timedelta(hours=24):
-                    print("\n[INFO] Option 5 was already run within the last 24 hours.")
+                if elapsed < timedelta(minutes=1):
+                    print("\n[INFO] Option 5 was already run within the last 1 minute.")
                     print("      Skipping to avoid burning YouTube API quota.")
                     input("\nPress ENTER to return to menu...")
                     continue
