@@ -80,11 +80,11 @@ def refresh_snapshot(token):
     if token != REFRESH_TOKEN:
         abort(403, description="Invalid refresh token.")
 
-    # 24h guard
+    # 1 minute guard
     last_run = get_last_option5_run()
     if last_run is not None:
         elapsed = datetime.now() - last_run
-        if elapsed < timedelta(hours=24):
+        if elapsed < timedelta(minutes=1):
             return jsonify({
                 "status": "skipped_recent",
                 "message": "Already refreshed within last 24 hours.",
