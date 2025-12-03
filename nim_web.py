@@ -71,7 +71,7 @@ def index():
 def refresh_snapshot(token):
     """
     Server-side snapshot builder, used by:
-      - You (manual hit)
+      - User (manual hit)
       - Render Cron Job (daily curl)
     """
     if not REFRESH_TOKEN:
@@ -87,7 +87,7 @@ def refresh_snapshot(token):
         if elapsed < timedelta(minutes=1):
             return jsonify({
                 "status": "skipped_recent",
-                "message": "Already refreshed within last 24 hours.",
+                "message": "Already refreshed within last 1 minute.",
                 "last_run": last_run.isoformat(timespec="seconds"),
             })
 
