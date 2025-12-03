@@ -14,7 +14,7 @@ url = f"{BASE_URL}/refresh/{REFRESH_TOKEN}"
 
 print(f"Calling refresh URL: {url}")
 
-resp = requests.get(url, timeout=30)
+resp = requests.get(url, timeout=600)
 
 print("Status:", resp.status_code)
 print("Response:", resp.text)
