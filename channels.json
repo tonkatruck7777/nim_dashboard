@@ -274,5 +274,35 @@
     "channel_id": "UCzuqE7-t13O4NIDYJfakrhw",
     "label": "Democracy Now",
     "group": "left"
+  },
+  {
+    "key": "ivehadit",
+    "channel_id": "UCZ5cvDR2HhVUcdVoTvvQKLw",
+    "label": "I've had It",
+    "group": "left"
+  },
+  {
+    "key": "taylorlorenz",
+    "channel_id": "UCp38w5n099xkvoqciOaeFag",
+    "label": "Taylor Lorenz",
+    "group": "left"
+  },
+  {
+    "key": "brettcooper",
+    "channel_id": "UCdFcGPb4xQ6X4QOoRU6ROYw",
+    "label": "Brett Cooper",
+    "group": "left"
+  },
+  {
+    "key": "katiehalper",
+    "channel_id": "UCUsMkDtVyel9USjCTaM42rw",
+    "label": "Katie Halper",
+    "group": "left"
+  },
+  {
+    "key": "samreich",
+    "channel_id": "UCfxcSyekPTFY-WJ00CuNv_w",
+    "label": "Sam Reich",
+    "group": "right"
   }
 ]
